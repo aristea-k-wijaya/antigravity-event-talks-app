@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Pulse</title>
+    
+    <!-- Meta tags for SEO -->
+    <meta name="description" content="Track, search, and share the latest Google Cloud BigQuery updates and release notes with interactive Twitter integration.">
+    <meta name="author" content="Antigravity Release Pulse">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Animated background mesh -->
+    <div class="bg-mesh"></div>
+    <div class="bg-glow"></div>
+
+    <div class="app-container">
+        <!-- Dashboard Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-cube"></i>
+                    <i class="fa-solid fa-bolt pulse-icon"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery <span>Release Pulse</span></h1>
+                    <p class="subtitle">Stay ahead with the latest Google Cloud BigQuery features and updates</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="btn-refresh" class="btn btn-primary" title="Refresh Release Notes">
+                    <span class="btn-spinner hidden" id="refresh-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                    <span class="btn-text"><i class="fa-solid fa-arrows-rotate"></i> Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Search, Filter & Stats Toolbar -->
+        <section class="toolbar-section">
+            <div class="search-bar-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search releases by keyword (e.g. Gemini, partition, JSON)..." autocomplete="off">
+                <button id="btn-clear-search" class="clear-search-btn hidden"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="filters-wrapper">
+                <div class="filter-group">
+                    <button class="filter-chip active" data-type="all">All Updates</button>
+                    <button class="filter-chip" data-type="feature"><span class="chip-indicator feat"></span> Features</button>
+                    <button class="filter-chip" data-type="issue"><span class="chip-indicator iss"></span> Issues</button>
+                    <button class="filter-chip" data-type="deprecation"><span class="chip-indicator dep"></span> Deprecations</button>
+                    <button class="filter-chip" data-type="other"><span class="chip-indicator oth"></span> General</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status / Counter Info -->
+        <div class="status-bar">
+            <div class="status-info">
+                <span id="update-count" class="badge-count">Loading...</span>
+                <span class="divider">|</span>
+                <span class="last-updated-text">Last Checked: <span id="last-updated">Never</span></span>
+            </div>
+            <div class="selection-status hidden" id="selection-status-bar">
+                <span id="selected-count-text">0 updates selected</span>
+                <button id="btn-tweet-selected" class="btn btn-accent btn-sm">
+                    <i class="fa-brands fa-x-twitter"></i> Tweet Selected
+                </button>
+                <button id="btn-clear-selection" class="btn btn-text-only btn-sm">Clear</button>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <main class="main-content">
+            <!-- Loading Skeleton -->
+            <div id="loading-skeleton" class="skeleton-grid">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="state-container hidden">
+                <div class="state-icon error"><i class="fa-solid fa-circle-exclamation"></i></div>
+                <h2>Failed to Load Releases</h2>
+                <p id="error-message">Something went wrong while retrieving the release notes feed.</p>
+                <button id="btn-retry" class="btn btn-outline"><i class="fa-solid fa-arrows-rotate"></i> Retry Connection</button>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="state-container hidden">
+                <div class="state-icon empty"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <h2>No Matching Updates</h2>
+                <p>Try adjusting your search keywords or active category filters.</p>
+                <button id="btn-reset-filters" class="btn btn-outline">Reset Filters</button>
+            </div>
+
+            <!-- Release Notes List -->
+            <div id="notes-grid" class="notes-grid hidden">
+                <!-- Dynamically populated cards will go here -->
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>BigQuery Release Pulse is built with Python Flask, HTML5, Vanilla JS, and CSS3.</p>
+            <p>Data fetched directly from the official Google Cloud BigQuery RSS Feed.</p>
+        </footer>
+    </div>
+
+    <!-- TWEET COMPOSER MODAL -->
+    <div id="tweet-modal" class="modal-overlay hidden">
+        <div class="modal-content glassmorphism">
+            <div class="modal-header">
+                <h3><i class="fa-brands fa-x-twitter"></i> Compose Tweet</h3>
+                <button id="btn-close-modal" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="update-preview-box">
+                    <span class="preview-label">Selected Update Content</span>
+                    <div id="modal-update-preview" class="preview-text"></div>
+                </div>
+
+                <div class="composer-container">
+                    <label for="tweet-textarea" class="composer-label">Edit Tweet Text</label>
+                    <textarea id="tweet-textarea" placeholder="What's happening?"></textarea>
+                    
+                    <div class="composer-meta">
+                        <div class="char-counter-container">
+                            <svg class="progress-ring" width="24" height="24">
+                                <circle class="progress-ring__bg" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                                <circle class="progress-ring__circle" id="char-progress" stroke="#06b6d4" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                            </svg>
+                            <span id="char-count">280</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btn-copy-tweet" class="btn btn-outline btn-icon" title="Copy to Clipboard">
+                    <i class="fa-regular fa-clipboard"></i> <span class="btn-lbl-text">Copy</span>
+                </button>
+                <button id="btn-launch-tweet" class="btn btn-accent">
+                    <i class="fa-brands fa-x-twitter"></i> Post on X
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden">
+        <i class="fa-solid fa-circle-check toast-icon"></i>
+        <span id="toast-text">Message copied!</span>
+    </div>
+
+    <!-- Custom Script -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
